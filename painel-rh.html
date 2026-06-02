@@ -170,6 +170,17 @@ tbody tr:hover td{background:#f8fafc}
 .sem-perm h3{font-size:15px;font-weight:700;color:#374151;margin:10px 0 5px}
 .sheet-lnk{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--pr);text-decoration:none;padding:5px 9px;border:1px solid #bfdbfe;border-radius:5px;background:#eff6ff;font-weight:500;transition:background .15s}
 .sheet-lnk:hover{background:#dbeafe}
+
+.status-area{display:flex;flex-direction:column;gap:6px}
+.status-lbl{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--mu)}
+.status-sel{width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:6px;background:#fff;font-family:'IBM Plex Sans',sans-serif;font-size:12.5px;color:#374151;outline:none;transition:border-color .15s,box-shadow .15s}
+.status-sel:focus{border-color:var(--pr);box-shadow:0 0 0 3px rgba(26,86,219,.08)}
+.status-sel:disabled{background:#f3f4f6;color:#9ca3af;cursor:not-allowed}
+.cand-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:14px}
+.cand-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:4px}
+.btn-sec{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;background:#fff;color:#374151;border:1px solid var(--bd);border-radius:7px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s,border-color .15s}
+.btn-sec:hover{background:#f8fafc;border-color:#9ca3af}
+
 </style>
 </head>
 <body>
@@ -183,6 +194,7 @@ tbody tr:hover td{background:#f8fafc}
   <div style="flex:1;display:flex;flex-direction:column;gap:2px">
     <div class="mnulbl">Módulo RH</div>
     <button class="sb-btn active" id="btn-dashboard"  onclick="show('dashboard')"><span class="dot d-all"></span> Dashboard</button>
+    <button class="sb-btn"        id="btn-candidatos" onclick="show('aba-cand')"> <span class="dot d-bl"></span> Cadastrar Pessoas</button>
     <button class="sb-btn"        id="btn-aprovados"  onclick="show('aba-apr')">  <span class="dot d-gr"></span>  Aprovados</button>
     <button class="sb-btn"        id="btn-recusados"  onclick="show('aba-rec')">  <span class="dot d-rd"></span>  Recusados</button>
     <button class="sb-btn"        id="btn-aguardando" onclick="show('aba-agu')">  <span class="dot d-yw"></span>  Aguardando Dev.</button>
@@ -266,6 +278,13 @@ tbody tr:hover td{background:#f8fafc}
     <div class="empty-state hidden" id="empty-agu">Nenhum candidato aguardando no período.</div>
   </div>
 
+
+  <!-- ABA CANDIDATOS -->
+  <div id="aba-cand" class="hidden aba-sec">
+    <div class="aba-hdr"><h3>Cadastrar Pessoas</h3><p>Inclua candidatos diretamente pelo sistema. O cadastro será enviado para a aba <strong>B.I</strong> da planilha.</p></div>
+    <div id="conteudo-candidatos"></div>
+  </div>
+
   <!-- ABA USUÁRIOS -->
   <div id="aba-usr" class="hidden aba-sec">
     <div class="aba-hdr"><h3>Cadastrar Usuários</h3><p>Gerenciamento de acessos — sincronizado com a planilha como banco de dados.</p></div>
@@ -288,12 +307,20 @@ tbody tr:hover td{background:#f8fafc}
 // ═══════════════════════════════════════════════════════
 //  CONFIG — COLE A URL DO APPS SCRIPT AQUI
 // ═══════════════════════════════════════════════════════
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwCKYeYREcUAiCAHL5wOh1lvkxMO9lZtsMIkbiSBWcWI4FS6aJjigGmUriox85Kwjq2Ig/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw0FdO1H4j9bachJkzTRiQ1cUKG8AGyXFjlhITAI8LHeHlQ_xgLXNcCkEIWKQ0B980G7w/exec";
 
-const SHEET_BI_URL    = "https://opensheet.elk.sh/1HAgFYS_f12hxk7KMXKAgKT7vPN1d2uW3EXCMj-Q3_2M/B.I";
-const SHEET_USR_URL   = "https://opensheet.elk.sh/16026hL-bywae4CoSddbS7T2qeMhC0elrWiECSrwMiCU/Usuarios";
-const SHEET_LINK      = "https://docs.google.com/spreadsheets/d/1HAgFYS_f12hxk7KMXKAgKT7vPN1d2uW3EXCMj-Q3_2M/edit";
-const SHEET_USR_LINK  = "https://docs.google.com/spreadsheets/d/16026hL-bywae4CoSddbS7T2qeMhC0elrWiECSrwMiCU/edit";
+const SHEET_BI_URL    = "https://opensheet.elk.sh/13HyNx_yseERp-uxa4sw4BqlYSn2KEAP1mwuEuiW1qiM/B.I";
+const SHEET_USR_URL   = "https://opensheet.elk.sh/13HyNx_yseERp-uxa4sw4BqlYSn2KEAP1mwuEuiW1qiM/Usuarios";
+const SHEET_LINK      = "https://docs.google.com/spreadsheets/d/13HyNx_yseERp-uxa4sw4BqlYSn2KEAP1mwuEuiW1qiM/edit";
+const SHEET_USR_LINK  = "https://docs.google.com/spreadsheets/d/13HyNx_yseERp-uxa4sw4BqlYSn2KEAP1mwuEuiW1qiM/edit";
+
+const STATUS_PROCESSO = [
+  "Encaminhado para avaliação da empresa",
+  "Empresa devolveu como contratado",
+  "Não seguiu no processo da empresa",
+  "Retorna ao banco de talentos"
+];
+
 
 // ═══════════════════════════════════════════════════════
 //  SESSÃO
@@ -334,8 +361,8 @@ atualizarTimestamp();
 // ═══════════════════════════════════════════════════════
 //  NAVEGAÇÃO
 // ═══════════════════════════════════════════════════════
-const ABAS = ["dashboard","aba-apr","aba-rec","aba-agu","aba-usr"];
-const BTNS = { dashboard:"btn-dashboard","aba-apr":"btn-aprovados","aba-rec":"btn-recusados","aba-agu":"btn-aguardando","aba-usr":"btn-usuarios" };
+const ABAS = ["dashboard","aba-cand","aba-apr","aba-rec","aba-agu","aba-usr"];
+const BTNS = { dashboard:"btn-dashboard","aba-cand":"btn-candidatos","aba-apr":"btn-aprovados","aba-rec":"btn-recusados","aba-agu":"btn-aguardando","aba-usr":"btn-usuarios" };
 
 function show(id) {
   ABAS.forEach(x => document.getElementById(x).classList.add("hidden"));
@@ -343,6 +370,7 @@ function show(id) {
   Object.values(BTNS).forEach(b => document.getElementById(b).classList.remove("active"));
   document.getElementById(BTNS[id]).classList.add("active");
   if (id === "aba-usr") renderAbaUsuarios();
+  if (id === "aba-cand") renderAbaCandidatos();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -404,7 +432,7 @@ function detectarDuplicatas(lista) {
 //  SINCRONIZAÇÃO COM PLANILHA VIA APPS SCRIPT
 // ═══════════════════════════════════════════════════════
 async function enviarParaPlanilha(payload) {
-  if (!APPS_SCRIPT_URL) return { ok: false, sem_url: true };
+  if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes("COLE_AQUI")) return { ok: false, sem_url: true };
   try {
     const r = await fetch(APPS_SCRIPT_URL, {
       method: "POST",
@@ -469,6 +497,14 @@ function criarCard(candid, classe, isDup) {
     <div class="emp-lbl">Empresa / Vaga</div>
     <div class="emp-nome">${candid.empresa||"–"}</div>
   </div>
+
+  <div class="status-area">
+    <div class="status-lbl">Status do processo</div>
+    <select class="status-sel" data-cpf="${esc(candid.cpf)}" data-nome="${esc(candid.nome)}" data-row="${candid.rowIndex}" onchange="alterarStatusCandidato(this)" ${podeEd()?"":"disabled"}>
+      ${STATUS_PROCESSO.map(st=>`<option value="${esc(st)}" ${normalizarStatus(candid.status)===normalizarStatus(st)?"selected":""}>${st}</option>`).join("")}
+    </select>
+    <span class="obs-sync" id="sync-status-${dataKey}"></span>
+  </div>
   <div class="obs-area">
     <div class="obs-lbl">
       Observações${podeEd()?' <small style="font-weight:400;text-transform:none;letter-spacing:0">(salva automaticamente)</small>':''}
@@ -487,6 +523,105 @@ function criarCard(candid, classe, isDup) {
 }
 
 function esc(s){ return String(s||"").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+
+function normalizarStatus(s){
+  return String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim().toUpperCase();
+}
+
+async function alterarStatusCandidato(el){
+  if(!podeEd()) return;
+  const cpf = el.dataset.cpf;
+  const nome = el.dataset.nome;
+  const rowIndex = parseInt(el.dataset.row)||-1;
+  const status = el.value;
+  const agora = tsAgora();
+  const key = `status-${(cpf||nome).replace(/\W/g,"_")}`;
+  const syncEl = document.getElementById("sync-status-" + `obs_${(cpf||"").replace(/\D/g,"") || nome.replace(/\s/g,"_")}`);
+  if(syncEl){ syncEl.textContent = "salvando status..."; syncEl.className="obs-sync saving"; }
+  el.disabled = true;
+  const res = await enviarParaPlanilha({
+    acao:"atualizarStatus",
+    cpf, nome,
+    linha: rowIndex > 0 ? rowIndex : undefined,
+    status,
+    recrutador: sessao.nome,
+    atualizacao: agora
+  });
+  el.disabled = !podeEd();
+  if(res.ok){
+    const item = dadosGlobais.find(x => {
+      const d = extrair(x);
+      return (rowIndex>0 && d.rowIndex===rowIndex) || (cpf && d.cpf===cpf && d.nome===nome);
+    });
+    if(item){ item["STATUS"] = status; item["Status"] = status; item["ATUALIZAÇÃO"] = agora; }
+    if(syncEl){ syncEl.textContent = "✓ Status salvo " + agora; syncEl.className="obs-sync"; }
+    atualizarTimestamp();
+    filtrarEAplicar();
+  }else{
+    if(syncEl){ syncEl.textContent = "✗ Erro ao salvar status"; syncEl.className="obs-sync erro"; }
+  }
+}
+
+function renderAbaCandidatos(){
+  const el = document.getElementById("conteudo-candidatos");
+  if(!podeEd()){
+    el.innerHTML = `<div class="sem-perm"><h3>Acesso restrito</h3><p>Apenas administradores e editores podem cadastrar pessoas.</p></div>`;
+    return;
+  }
+  el.innerHTML = `
+    <div class="form-cad" style="max-width:900px">
+      <div class="cand-grid">
+        <div class="f-grp"><label>Nome completo *</label><input id="cand-nome" class="f-inp" placeholder="Nome do candidato"></div>
+        <div class="f-grp"><label>Contato / WhatsApp *</label><input id="cand-contato" class="f-inp" placeholder="(42) 99999-9999"></div>
+        <div class="f-grp"><label>CPF</label><input id="cand-cpf" class="f-inp" placeholder="000.000.000-00"></div>
+        <div class="f-grp"><label>Empresa / vaga *</label><input id="cand-empresa" class="f-inp" placeholder="Nome da empresa"></div>
+        <div class="f-grp"><label>Status</label><select id="cand-status" class="f-sel">${STATUS_PROCESSO.map(s=>`<option value="${s}">${s}</option>`).join("")}</select></div>
+        <div class="f-grp"><label>CF</label><input id="cand-cf" class="f-inp" placeholder="Sim/Não ou código"></div>
+        <div class="f-grp"><label>Dispensa</label><input id="cand-dispensa" class="f-inp" placeholder="Sim, não ou não aplicável"></div>
+        <div class="f-grp"><label>Currículo</label><input id="cand-curriculo" class="f-inp" placeholder="Link ou observação"></div>
+      </div>
+      <div class="f-grp" style="margin-bottom:14px"><label>Observações</label><textarea id="cand-obs" class="campo-obs editavel" rows="3" placeholder="Anotações sobre o candidato"></textarea></div>
+      <div class="cand-actions">
+        <button class="btn-cad" id="btn-cand" onclick="cadastrarCandidato()">Cadastrar pessoa</button>
+        <button class="btn-sec" onclick="limparFormCandidato()">Limpar campos</button>
+        <a href="${SHEET_LINK}" target="_blank" class="sheet-lnk">Abrir planilha</a>
+      </div>
+      <div class="msg-fb" id="msg-cand"></div>
+    </div>`;
+}
+
+function limparFormCandidato(){
+  ["cand-nome","cand-contato","cand-cpf","cand-empresa","cand-cf","cand-dispensa","cand-curriculo","cand-obs"].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=""; });
+  const st=document.getElementById("cand-status"); if(st) st.value=STATUS_PROCESSO[0];
+}
+
+async function cadastrarCandidato(){
+  const msgEl = document.getElementById("msg-cand");
+  const btn = document.getElementById("btn-cand");
+  msgEl.className="msg-fb";
+  const nome = document.getElementById("cand-nome").value.trim();
+  const contato = document.getElementById("cand-contato").value.trim();
+  const cpf = document.getElementById("cand-cpf").value.trim();
+  const empresa = document.getElementById("cand-empresa").value.trim();
+  const status = document.getElementById("cand-status").value;
+  const cf = document.getElementById("cand-cf").value.trim();
+  const dispensa = document.getElementById("cand-dispensa").value.trim();
+  const curriculo = document.getElementById("cand-curriculo").value.trim();
+  const obs = document.getElementById("cand-obs").value.trim();
+  if(!nome || !contato || !empresa){ msgEl.textContent="Preencha nome, contato e empresa/vaga."; msgEl.className="msg-fb er"; return; }
+  const agora = tsAgora();
+  btn.disabled=true; btn.innerHTML=`<span class="sp-inline"></span> Cadastrando...`;
+  const payload = { acao:"cadastrarCandidato", nome, contato, cpf, atualizacao:agora, cf, dispensa, curriculo, status, empresa, resultadoEmpresa:"", devolutiva:"", obs, recrutador:sessao.nome };
+  const res = await enviarParaPlanilha(payload);
+  btn.disabled=false; btn.textContent="Cadastrar pessoa";
+  if(res.ok){
+    msgEl.textContent=`✓ ${nome} cadastrado e enviado para a planilha.`; msgEl.className="msg-fb ok";
+    dadosGlobais.unshift({NOME:nome, CONTATO:contato, CPF:cpf, "ATUALIZAÇÃO":agora, CF:cf, DISPENSA:dispensa, "CURRÍCULO":curriculo, STATUS:status, EMPRESA:empresa, "RESULTADO EMPRESA":"", DEVOLUTIVA:"", OBS:obs, RECRUTADOR:sessao.nome, __rowindex:-1});
+    limparFormCandidato();
+    filtrarEAplicar(); atualizarTimestamp();
+  }else{ msgEl.textContent="✗ Erro ao cadastrar: "+(res.error||"verifique o Apps Script"); msgEl.className="msg-fb er"; }
+}
 
 // ═══════════════════════════════════════════════════════
 //  AUTO-SAVE DAS OBS (debounce 1.5s)
@@ -612,7 +747,7 @@ function renderPaineis(lista) {
 
     const isContr = txt.includes("CONTRAT") || txt.includes("APROV");
     const isRec   = txt.includes("RECUS")   || txt.includes("NAO PROSSE") || txt.includes("DESISTENCIA") || txt.includes("NAO PROSSEG");
-    const isAgu   = txt.includes("AGUARDANDO");
+    const isAgu   = txt.includes("AGUARDANDO") || txt.includes("ENCAMINHADO PARA AVALIACAO") || txt.includes("ENCAMINHADO PARA AVALIAÇÃO") || txt.includes("RETORNA AO BANCO");
     const isEnc   = txt.includes("ENCAMINHADO");
     const isDup   = dupSet.has(idx);
 
@@ -633,7 +768,7 @@ function renderPaineis(lista) {
       if      (u.includes("ENCAMINHADO"))                row += `<td><span class="st st-enc">${val}</span></td>`;
       else if (u.includes("CONTRAT")||u.includes("APROV")) row += `<td><span class="st st-con">${val}</span></td>`;
       else if (u.includes("NAO PROSSE")||u.includes("RECUS")) row += `<td><span class="st st-nao">${val}</span></td>`;
-      else if (u.includes("AGUARDANDO"))                 row += `<td><span class="st st-agu">${val}</span></td>`;
+      else if (u.includes("AGUARDANDO")||u.includes("ENCAMINHADO PARA AVALIACAO")||u.includes("ENCAMINHADO PARA AVALIAÇÃO")||u.includes("RETORNA AO BANCO")) row += `<td><span class="st st-agu">${val}</span></td>`;
       else                                               row += `<td>${val}</td>`;
     });
     row += "</tr>";
@@ -715,7 +850,7 @@ async function carregarDados() {
 
   // Se APPS_SCRIPT_URL configurado, usa ele (GET); senão usa opensheet
   let url = SHEET_BI_URL;
-  if (APPS_SCRIPT_URL) url = APPS_SCRIPT_URL + "?acao=lerBI";
+  if (APPS_SCRIPT_URL && !APPS_SCRIPT_URL.includes("COLE_AQUI")) url = APPS_SCRIPT_URL + "?acao=lerBI";
 
   try {
     const resp = await fetch(url);
@@ -757,7 +892,7 @@ async function renderAbaUsuarios() {
   el.innerHTML = `<div style="color:var(--mu);font-size:13px;padding:16px 0">Carregando usuários...</div>`;
 
   let url = SHEET_USR_URL;
-  if (APPS_SCRIPT_URL) url = APPS_SCRIPT_URL + "?acao=lerUsuarios";
+  if (APPS_SCRIPT_URL && !APPS_SCRIPT_URL.includes("COLE_AQUI")) url = APPS_SCRIPT_URL + "?acao=lerUsuarios";
   try {
     const r = await fetch(url);
     const j = await r.json();
