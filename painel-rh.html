@@ -2280,4 +2280,35 @@ carregarDaPlanilha();
 
 <div class="sysModalOverlay" id="sysLoadingOverlay">
   <div class="sysModal sysLoading">
-    <div class="sysSpi
+    <div class="sysSpinner"></div>
+    <h3 id="sysLoadingTitle">Carregando</h3>
+    <p id="sysLoadingText">Aguarde um instante...</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  const els = () => document.querySelectorAll('.box,.card,.filterPanel,.kanbanCol,.semAtualizacaoCard');
+  if(!('IntersectionObserver' in window)) return;
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        e.target.style.opacity='1';
+        e.target.style.transform='translateY(0)';
+        io.unobserve(e.target);
+      }
+    });
+  },{threshold:.08});
+  setTimeout(()=>els().forEach(el=>{
+    if(!el.dataset.reveal){
+      el.dataset.reveal='1';
+      el.style.opacity='0';
+      el.style.transform='translateY(14px)';
+      el.style.transition='opacity .5s ease, transform .5s ease';
+      io.observe(el);
+    }
+  }),300);
+})();
+</script>
+</body>
+</html>
