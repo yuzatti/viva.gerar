@@ -1654,16 +1654,66 @@ function apiJSONP(payload){
     const params=new URLSearchParams();
     params.set("payload", JSON.stringify(payload));
     params.set("callback", cb);
-    window[cb]=function(data){delete window[cb];script.remove();resolve(data);};
-    script.onerror=function(){delete window[cb];script.remove();reject(new Error("Falha ao conectar com o Apps Script. Verifique a implantação como App da Web e acesso 'Qualquer pessoa'."));};
-    script.src=CONFIG.APPS_SCRIPT_URL+"?"+params.toString();
+
+    window[cb]=function(data){
+      delete window[cb];
+      script.remove();
+      resolve(data);
+    };
+
+    script.onerror=function(){
+      delete window[cb];
+      script.remove();
+      reject(new Error("Não foi possível conectar com a planilha. Verifique a implantação do Apps Script."));
+    };
+
+    script.src="https://script.google.com/macros/s/AKfycbyM9b0yfvO1HQjln8tbgKc2tFQVptoxIv-gaKtlAu4HEptlxcsen3NMCNiTePk7QRTT/exec?"+params.toString();
     document.body.appendChild(script);
   });
 }
 
 async function carregarDaPlanilha(){
-  try{mostrarCarregando("Sincronizando sistema","Buscando os registros atualizados...");syncMsg("Sincronizando dados do sistema...");const res=await apiJSONP({action:"list"});if(!res.ok)throw new Error(res.error||"Erro desconhecido");candidatos=res.data||[];localStorage.setItem("cacheCandidatos",JSON.stringify(candidatos));syncMsg("Dados do sistema sincronizados.");registrarUltimaSincronizacao();fecharCarregando();atualizarResumoFiltros();renderizarTudoInteligente()}
-  catch(e){candidatos=JSON.parse(localStorage.getItem("cacheCandidatos")||"[]");fecharCarregando();syncMsg("Conexão pendente: "+e.message+" Exibindo cache local.");atualizarResumoFiltros();invalidarCache();renderizarTudoInteligente()}
+  try{
+    mostrarCarregando("Sincronizando sistema","Buscando registros da planilha...");
+    syncMsg("Sincronizando dados do sistema...");
+    const res=await apiJSONP({action:"list"});
+
+    if(!res || !res.ok){
+      throw new Error((res && res.error) ? res.error : "Resposta inválida do Apps Script");
+    }
+
+    candidatos=res.data||[];
+    localStorage.setItem("cacheCandidatos",JSON.stringify(candidatos));
+
+    if(typeof invalidarCache==="function") invalidarCache();
+    if(typeof atualizarResumoFiltros==="function") atualizarResumoFiltros();
+    if(typeof registrarUltimaSincronizacao==="function") registrarUltimaSincronizacao();
+
+    syncMsg("Dados do sistema sincronizados.");
+    fecharCarregando();
+
+    if(typeof renderizarTudoInteligente==="function") renderizarTudoInteligente();
+    else{
+      renderizar();
+      renderizarDashboard();
+      renderizarKanban();
+      renderizarNotificacoes();
+    }
+  }catch(e){
+    fecharCarregando();
+    candidatos=JSON.parse(localStorage.getItem("cacheCandidatos")||"[]");
+    if(typeof invalidarCache==="function") invalidarCache();
+    syncMsg("Não foi possível puxar da planilha: "+e.message+" Exibindo dados salvos no navegador.");
+    console.error("Erro ao puxar planilha:", e);
+
+    if(typeof renderizarTudoInteligente==="function") renderizarTudoInteligente();
+    else{
+      renderizar();
+      renderizarDashboard();
+      renderizarKanban();
+      renderizarNotificacoes();
+    }
+  }
 }
 async function salvarCandidato(){
   const agora=new Date();const id=val("editId")||crypto.randomUUID();const antigo=candidatos.find(c=>c.id===id);
@@ -2230,35 +2280,4 @@ carregarDaPlanilha();
 
 <div class="sysModalOverlay" id="sysLoadingOverlay">
   <div class="sysModal sysLoading">
-    <div class="sysSpinner"></div>
-    <h3 id="sysLoadingTitle">Carregando</h3>
-    <p id="sysLoadingText">Aguarde um instante...</p>
-  </div>
-</div>
-
-<script>
-(function(){
-  const els = () => document.querySelectorAll('.box,.card,.filterPanel,.kanbanCol,.semAtualizacaoCard');
-  if(!('IntersectionObserver' in window)) return;
-  const io = new IntersectionObserver((entries)=>{
-    entries.forEach(e=>{
-      if(e.isIntersecting){
-        e.target.style.opacity='1';
-        e.target.style.transform='translateY(0)';
-        io.unobserve(e.target);
-      }
-    });
-  },{threshold:.08});
-  setTimeout(()=>els().forEach(el=>{
-    if(!el.dataset.reveal){
-      el.dataset.reveal='1';
-      el.style.opacity='0';
-      el.style.transform='translateY(14px)';
-      el.style.transition='opacity .5s ease, transform .5s ease';
-      io.observe(el);
-    }
-  }),300);
-})();
-</script>
-</body>
-</html>
+    <div class="sysSpi
